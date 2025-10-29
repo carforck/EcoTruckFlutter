@@ -1,15 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../services/auth_service.dart';
+import 'package:geolocator/geolocator.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final LatLng mapCenter = LatLng(10.3910, -75.4794); // Cartagena
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  final MapController _mapController = MapController();
+  LatLng? ubicacionActual;
+  bool seguimientoActivo = false;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> iniciarSeguimiento() async {
+    bool servicioActivo = await Geolocator.isLocationServiceEnabled();
+    LocationPermission permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+    }
+    if (permiso == LocationPermission.deniedForever || !servicioActivo) return;
+
+    setState(() => seguimientoActivo = true);
+
+    Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).listen((Position posicion) {
+      final nuevaUbicacion = LatLng(posicion.latitude, posicion.longitude);
+      setState(() => ubicacionActual = nuevaUbicacion);
+      _mapController.move(nuevaUbicacion, 16);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       drawer: Drawer(
         child: ListView(
@@ -30,16 +80,44 @@ class HomeScreen extends StatelessWidget {
       body: Stack(
         children: [
           FlutterMap(
-            options: MapOptions(center: mapCenter, zoom: 13),
+            mapController: _mapController,
+            options: MapOptions(
+              center: const LatLng(10.3910, -75.4794),
+              zoom: 13,
+            ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.ecotruck',
               ),
+              if (ubicacionActual != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: ubicacionActual!,
+                      width: 60,
+                      height: 60,
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Color.fromARGB(181, 156, 145, 43),
+                          size: 40,
+                        ),
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: child,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
 
-          // 🟢 Botón hamburguesa superior izquierdo
+          // Botón hamburguesa
           Positioned(
             top: 20,
             left: 20,
@@ -52,43 +130,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
 
-          // 🧭 Indicador principal (top-center)
-          Positioned(
-            top: 25,
-            left: MediaQuery.of(context).size.width / 2 - 75,
-            child: Container(
-              width: 150,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: Colors.green.shade200),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-              ),
-              alignment: Alignment.center,
-              child: const Text('1 | 12', style: TextStyle(fontSize: 22)),
-            ),
-          ),
-
-          // 🔢 Subcontador (debajo del indicador)
-          Positioned(
-            top: 85,
-            left: MediaQuery.of(context).size.width / 2 - 35,
-            child: Container(
-              width: 70,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.green.shade100),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
-              ),
-              alignment: Alignment.center,
-              child: const Text('0 | 0', style: TextStyle(fontSize: 16)),
-            ),
-          ),
-
-          // 🎯 Botones flotantes en cascada (right-bottom)
+          // Botones flotantes
           Positioned(
             right: 16,
             bottom: 180,
@@ -97,34 +139,30 @@ class HomeScreen extends StatelessWidget {
                 FloatingActionButton(
                   heroTag: 'avisos',
                   backgroundColor: const Color(0xFFF5F6F7),
-                  onPressed: () {
-                    // Acción para avisos
-                  },
+                  onPressed: () {},
                   child: const Icon(Icons.warning, color: Colors.green),
                 ),
                 const SizedBox(height: 16),
                 FloatingActionButton(
                   heroTag: 'recentrar',
                   backgroundColor: const Color(0xFFF5F6F7),
-                  onPressed: () {
-                    // Acción para recentrar
-                  },
-                  child: const Icon(Icons.my_location, color: Colors.green),
+                  onPressed: iniciarSeguimiento,
+                  child: seguimientoActivo
+                      ? const Icon(Icons.sync, color: Colors.green)
+                      : const Icon(Icons.my_location, color: Colors.green),
                 ),
                 const SizedBox(height: 16),
                 FloatingActionButton(
                   heroTag: 'zonas',
                   backgroundColor: const Color(0xFFF5F6F7),
-                  onPressed: () {
-                    // Acción para mostrar/ocultar zonas
-                  },
+                  onPressed: () {},
                   child: const Icon(Icons.map, color: Colors.green),
                 ),
               ],
             ),
           ),
 
-          // 🟢 Botón principal inferior (Conectar)
+          // Botón inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -137,9 +175,7 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  onPressed: () {
-                    // Acción de conexión
-                  },
+                  onPressed: iniciarSeguimiento, // ✅ Aquí se activa también
                   child: const Text('Conectar'),
                 ),
               ),

@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/logo.png', height: 120),
+              Image.asset('assets/logoecotruck.jpg', height: 120),
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
