@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'perfil_screen.dart';
+import 'calendario_screen.dart';
+import 'notificaciones_screen.dart';
+import '../screens/login_screen.dart';
+import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   LatLng? ubicacionActual;
   bool seguimientoActivo = false;
+
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -60,20 +68,90 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final datosUsuario = AuthService.decodeToken();
+    final nombre = datosUsuario?['nombre'] ?? 'Usuario EcoTruck';
+    final correo = datosUsuario?['correo'] ?? '';
+
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const [
+          children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.green),
-              child: Text(
-                'Menú EcoTruck',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+              decoration: const BoxDecoration(color: Colors.green),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: SvgPicture.asset(
+                      'assets/Logo_EcoTruck.svg',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    nombre,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    correo,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
-            ListTile(leading: Icon(Icons.person), title: Text('Perfil')),
-            ListTile(leading: Icon(Icons.logout), title: Text('Cerrar sesión')),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Perfil'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PerfilScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Calendario'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CalendarioScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notificaciones'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificacionesScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Cerrar sesión'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -101,36 +179,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         animation: _pulseAnimation,
                         child: const Icon(
                           Icons.my_location,
-                          color: Color.fromARGB(181, 156, 145, 43),
+                          color: Colors.blue,
                           size: 40,
                         ),
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _pulseAnimation.value,
-                            child: child,
-                          );
-                        },
+                        builder: (context, child) => Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: child,
+                        ),
                       ),
                     ),
                   ],
                 ),
             ],
           ),
-
-          // Botón hamburguesa
           Positioned(
             top: 20,
             left: 20,
-            child: FloatingActionButton(
-              heroTag: 'menuTop',
-              mini: true,
-              backgroundColor: const Color(0xFFF5F6F7),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              child: const Icon(Icons.menu, color: Colors.green),
+            child: Builder(
+              builder: (context) => FloatingActionButton(
+                heroTag: 'menuTop',
+                mini: true,
+                backgroundColor: Colors.white,
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                child: const Icon(Icons.menu, color: Colors.green),
+              ),
             ),
           ),
-
-          // Botones flotantes
+          Positioned(
+            top: 20,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {},
+                child: Column(
+                  children: const [
+                    Text(
+                      "1 | 12",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text("Zona: Norte", style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Positioned(
             right: 16,
             bottom: 180,
@@ -138,14 +246,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 FloatingActionButton(
                   heroTag: 'avisos',
-                  backgroundColor: const Color(0xFFF5F6F7),
+                  backgroundColor: Colors.white,
                   onPressed: () {},
                   child: const Icon(Icons.warning, color: Colors.green),
                 ),
                 const SizedBox(height: 16),
                 FloatingActionButton(
                   heroTag: 'recentrar',
-                  backgroundColor: const Color(0xFFF5F6F7),
+                  backgroundColor: Colors.white,
                   onPressed: iniciarSeguimiento,
                   child: seguimientoActivo
                       ? const Icon(Icons.sync, color: Colors.green)
@@ -154,15 +262,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 const SizedBox(height: 16),
                 FloatingActionButton(
                   heroTag: 'zonas',
-                  backgroundColor: const Color(0xFFF5F6F7),
+                  backgroundColor: Colors.white,
                   onPressed: () {},
                   child: const Icon(Icons.map, color: Colors.green),
                 ),
               ],
             ),
           ),
-
-          // Botón inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -172,10 +278,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    textStyle: const TextStyle(fontSize: 16),
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                   ),
-                  onPressed: iniciarSeguimiento, // ✅ Aquí se activa también
+                  onPressed: iniciarSeguimiento,
                   child: const Text('Conectar'),
                 ),
               ),

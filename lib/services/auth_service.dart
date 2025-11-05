@@ -48,4 +48,25 @@ class AuthService {
       return {'success': false, 'message': 'Error de conexión'};
     }
   }
+
+  /// 🔍 Decodifica el token JWT y retorna los datos del usuario
+  static Map<String, dynamic>? decodeToken() {
+    if (token == null) return null;
+
+    try {
+      final parts = token!.split('.');
+      if (parts.length != 3) {
+        logger.w('Token mal formado');
+        return null;
+      }
+
+      final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final decoded = jsonDecode(payload);
+      logger.i('Token decodificado: $decoded');
+      return decoded;
+    } catch (e) {
+      logger.e('Error al decodificar token', error: e);
+      return null;
+    }
+  }
 }

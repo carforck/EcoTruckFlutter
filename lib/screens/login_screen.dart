@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 final logger = Logger();
 
@@ -51,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/logoecotruck.jpg', height: 120),
+              SvgPicture.asset('assets/Logo_EcoTruck.svg', height: 200),
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
